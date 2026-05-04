@@ -1,0 +1,1432 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PROJETO Y — Entregas Rápidas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+  :root {
+    --bg: #0a0a0a;
+    --bg2: #111111;
+    --bg3: #1a1a1a;
+    --bg4: #222222;
+    --border: #2a2a2a;
+    --accent: #E8FF47;
+    --accent2: #FF6B35;
+    --text: #f0f0f0;
+    --text2: #888888;
+    --text3: #555555;
+    --success: #2ECC71;
+    --warning: #F39C12;
+    --danger: #E74C3C;
+    --radius: 16px;
+    --radius-sm: 8px;
+    --radius-lg: 24px;
+    --shadow: 0 8px 32px rgba(0,0,0,0.4);
+    --shadow-accent: 0 4px 24px rgba(232,255,71,0.15);
+    --font-display: 'Syne', sans-serif;
+    --font-body: 'DM Sans', sans-serif;
+    --transition: all 0.25s cubic-bezier(0.4,0,0.2,1);
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html, body { height:100%; overflow:hidden; background:var(--bg); color:var(--text); font-family:var(--font-body); }
+
+  /* ─── SPLASH ─── */
+  #splash {
+    position:fixed; inset:0; background:var(--bg);
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    z-index:9999; transition: opacity 0.6s ease, transform 0.6s ease;
+  }
+  #splash.hide { opacity:0; transform:scale(1.04); pointer-events:none; }
+  .splash-logo { font-family:var(--font-display); font-size:3.5rem; font-weight:800; letter-spacing:-2px; }
+  .splash-logo span { color:var(--accent); }
+  .splash-sub { color:var(--text2); font-size:0.9rem; margin-top:8px; letter-spacing:2px; text-transform:uppercase; }
+  .splash-bar { width:120px; height:3px; background:var(--bg4); border-radius:4px; margin-top:40px; overflow:hidden; }
+  .splash-fill { height:100%; background:var(--accent); border-radius:4px; animation:fillbar 2s ease forwards; }
+  @keyframes fillbar { from{width:0} to{width:100%} }
+
+  /* ─── AUTH ─── */
+  #auth-screen {
+    position:fixed; inset:0; background:var(--bg);
+    display:flex; align-items:center; justify-content:center;
+    z-index:999; transition: opacity 0.4s ease;
+    padding:20px;
+  }
+  #auth-screen.hide { opacity:0; pointer-events:none; }
+  .auth-card {
+    background:var(--bg2); border:1px solid var(--border);
+    border-radius:var(--radius-lg); padding:40px 36px;
+    width:100%; max-width:420px;
+    box-shadow: var(--shadow);
+    animation: slideUp 0.5s ease;
+  }
+  @keyframes slideUp { from{opacity:0;transform:translateY(24px)} to{opacity:1;transform:translateY(0)} }
+  .auth-logo { font-family:var(--font-display); font-size:2rem; font-weight:800; letter-spacing:-1px; margin-bottom:4px; }
+  .auth-logo span { color:var(--accent); }
+  .auth-tagline { color:var(--text2); font-size:0.85rem; margin-bottom:32px; }
+  .auth-tabs { display:flex; gap:4px; background:var(--bg3); border-radius:var(--radius-sm); padding:4px; margin-bottom:28px; }
+  .auth-tab {
+    flex:1; padding:10px; text-align:center; border-radius:6px;
+    cursor:pointer; font-family:var(--font-display); font-weight:600; font-size:0.85rem;
+    color:var(--text2); transition:var(--transition);
+  }
+  .auth-tab.active { background:var(--accent); color:#000; }
+  .input-group { margin-bottom:16px; }
+  .input-group label { display:block; font-size:0.75rem; font-weight:500; color:var(--text2); margin-bottom:6px; text-transform:uppercase; letter-spacing:0.5px; }
+  .input-group input, .input-group select {
+    width:100%; background:var(--bg3); border:1px solid var(--border);
+    border-radius:var(--radius-sm); padding:12px 14px;
+    color:var(--text); font-family:var(--font-body); font-size:0.95rem;
+    transition:var(--transition); outline:none;
+  }
+  .input-group input:focus, .input-group select:focus { border-color:var(--accent); box-shadow:0 0 0 3px rgba(232,255,71,0.1); }
+  .input-group select option { background:var(--bg3); }
+  .btn-primary {
+    width:100%; background:var(--accent); color:#000;
+    border:none; border-radius:var(--radius-sm); padding:14px;
+    font-family:var(--font-display); font-weight:700; font-size:1rem;
+    cursor:pointer; transition:var(--transition); margin-top:8px;
+  }
+  .btn-primary:hover { background:#d4eb3a; transform:translateY(-1px); box-shadow:var(--shadow-accent); }
+  .btn-primary:active { transform:translateY(0); }
+  .auth-switch { text-align:center; margin-top:20px; font-size:0.85rem; color:var(--text2); }
+  .auth-switch a { color:var(--accent); cursor:pointer; text-decoration:none; font-weight:500; }
+
+  /* ─── APP SHELL ─── */
+  #app {
+    position:fixed; inset:0; display:none; flex-direction:column;
+    background:var(--bg); overflow:hidden;
+  }
+  #app.show { display:flex; }
+
+  /* ─── TOP BAR ─── */
+  .topbar {
+    display:flex; align-items:center; justify-content:space-between;
+    padding:16px 20px 12px; background:var(--bg);
+    border-bottom:1px solid var(--border); flex-shrink:0; z-index:100;
+  }
+  .topbar-logo { font-family:var(--font-display); font-size:1.4rem; font-weight:800; letter-spacing:-1px; }
+  .topbar-logo span { color:var(--accent); }
+  .topbar-right { display:flex; align-items:center; gap:12px; }
+  .avatar-btn {
+    width:36px; height:36px; border-radius:50%; background:var(--accent);
+    display:flex; align-items:center; justify-content:center;
+    font-family:var(--font-display); font-weight:800; font-size:0.85rem;
+    color:#000; cursor:pointer; overflow:hidden; flex-shrink:0;
+  }
+  .avatar-btn img { width:100%; height:100%; object-fit:cover; }
+  .notif-btn {
+    width:36px; height:36px; border-radius:50%; background:var(--bg3);
+    display:flex; align-items:center; justify-content:center;
+    cursor:pointer; border:1px solid var(--border); position:relative;
+  }
+  .notif-dot { position:absolute; top:6px; right:6px; width:8px; height:8px; background:var(--accent2); border-radius:50%; border:2px solid var(--bg); }
+
+  /* ─── CONTENT ─── */
+  .content { flex:1; overflow-y:auto; overflow-x:hidden; }
+  .content::-webkit-scrollbar { width:4px; }
+  .content::-webkit-scrollbar-track { background:transparent; }
+  .content::-webkit-scrollbar-thumb { background:var(--bg4); border-radius:4px; }
+
+  /* ─── BOTTOM NAV ─── */
+  .bottom-nav {
+    display:flex; background:var(--bg2); border-top:1px solid var(--border);
+    padding:8px 0 calc(8px + env(safe-area-inset-bottom)); flex-shrink:0; z-index:100;
+  }
+  .nav-item {
+    flex:1; display:flex; flex-direction:column; align-items:center;
+    gap:4px; cursor:pointer; padding:8px 4px;
+    transition:var(--transition); position:relative;
+  }
+  .nav-item svg { width:22px; height:22px; stroke:var(--text3); transition:var(--transition); }
+  .nav-item span { font-size:0.65rem; font-weight:500; color:var(--text3); transition:var(--transition); letter-spacing:0.3px; }
+  .nav-item.active svg { stroke:var(--accent); }
+  .nav-item.active span { color:var(--accent); }
+  .nav-item.active::after {
+    content:''; position:absolute; bottom:-8px; left:50%; transform:translateX(-50%);
+    width:20px; height:3px; background:var(--accent); border-radius:2px 2px 0 0;
+  }
+
+  /* ─── PAGE SECTIONS ─── */
+  .page { display:none; padding:0 0 80px; animation:fadeIn 0.3s ease; }
+  .page.active { display:block; }
+  @keyframes fadeIn { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+
+  /* ─── HOME PAGE ─── */
+  .home-hero {
+    background: linear-gradient(135deg, var(--bg2) 0%, var(--bg3) 100%);
+    padding:24px 20px 20px; margin-bottom:0;
+    border-bottom:1px solid var(--border);
+  }
+  .home-greeting { font-size:0.8rem; color:var(--text2); margin-bottom:4px; text-transform:uppercase; letter-spacing:1px; }
+  .home-name { font-family:var(--font-display); font-size:1.5rem; font-weight:700; margin-bottom:16px; }
+  .status-bar {
+    display:flex; gap:10px;
+  }
+  .status-pill {
+    background:var(--bg4); border:1px solid var(--border); border-radius:20px;
+    padding:6px 14px; font-size:0.78rem; display:flex; align-items:center; gap:6px;
+  }
+  .status-dot { width:7px; height:7px; border-radius:50%; background:var(--success); animation:pulse 2s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+  .quick-actions { padding:20px; display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  .qa-card {
+    background:var(--bg2); border:1px solid var(--border); border-radius:var(--radius);
+    padding:20px 16px; cursor:pointer; transition:var(--transition);
+    display:flex; flex-direction:column; gap:12px;
+  }
+  .qa-card:hover { border-color:var(--accent); transform:translateY(-2px); box-shadow:var(--shadow-accent); }
+  .qa-card.primary { background:var(--accent); border-color:var(--accent); grid-column:span 2; flex-direction:row; align-items:center; }
+  .qa-card.primary .qa-title { color:#000; }
+  .qa-card.primary .qa-sub { color:rgba(0,0,0,0.6); }
+  .qa-icon {
+    width:40px; height:40px; border-radius:var(--radius-sm); background:var(--bg3);
+    display:flex; align-items:center; justify-content:center; flex-shrink:0;
+  }
+  .qa-card.primary .qa-icon { background:rgba(0,0,0,0.15); }
+  .qa-icon svg { width:20px; height:20px; stroke:var(--accent); }
+  .qa-card.primary .qa-icon svg { stroke:#000; }
+  .qa-title { font-family:var(--font-display); font-weight:700; font-size:0.95rem; }
+  .qa-sub { font-size:0.78rem; color:var(--text2); margin-top:2px; }
+  .qa-card.primary .qa-text { flex:1; }
+
+  .section-header { padding:20px 20px 12px; display:flex; align-items:center; justify-content:space-between; }
+  .section-title { font-family:var(--font-display); font-weight:700; font-size:1rem; }
+  .section-link { font-size:0.8rem; color:var(--accent); cursor:pointer; }
+
+  .recent-list { padding:0 20px; display:flex; flex-direction:column; gap:10px; }
+  .delivery-card {
+    background:var(--bg2); border:1px solid var(--border); border-radius:var(--radius);
+    padding:16px; display:flex; align-items:center; gap:14px; cursor:pointer;
+    transition:var(--transition);
+  }
+  .delivery-card:hover { border-color:var(--border); background:var(--bg3); }
+  .delivery-icon {
+    width:44px; height:44px; border-radius:var(--radius-sm); flex-shrink:0;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .delivery-icon.delivered { background:rgba(46,204,113,0.1); }
+  .delivery-icon.transit { background:rgba(232,255,71,0.1); }
+  .delivery-icon.cancelled { background:rgba(231,76,60,0.1); }
+  .delivery-icon svg { width:20px; height:20px; }
+  .delivery-icon.delivered svg { stroke:var(--success); }
+  .delivery-icon.transit svg { stroke:var(--accent); }
+  .delivery-icon.cancelled svg { stroke:var(--danger); }
+  .delivery-info { flex:1; min-width:0; }
+  .delivery-route { font-weight:500; font-size:0.88rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .delivery-meta { font-size:0.75rem; color:var(--text2); margin-top:3px; }
+  .delivery-price { font-family:var(--font-display); font-weight:700; font-size:0.95rem; color:var(--accent); flex-shrink:0; }
+
+  /* ─── REQUEST FORM ─── */
+  .form-page { padding:20px 20px 100px; }
+  .form-section { margin-bottom:24px; }
+  .form-section-title {
+    font-family:var(--font-display); font-weight:700; font-size:0.85rem;
+    color:var(--text2); text-transform:uppercase; letter-spacing:1px;
+    margin-bottom:14px; display:flex; align-items:center; gap:8px;
+  }
+  .form-section-title::after { content:''; flex:1; height:1px; background:var(--border); }
+
+  .address-input-wrap { position:relative; }
+  .address-input-wrap input {
+    width:100%; background:var(--bg2); border:1px solid var(--border);
+    border-radius:var(--radius-sm); padding:13px 14px 13px 44px;
+    color:var(--text); font-family:var(--font-body); font-size:0.92rem;
+    outline:none; transition:var(--transition);
+  }
+  .address-input-wrap input:focus { border-color:var(--accent); box-shadow:0 0 0 3px rgba(232,255,71,0.08); }
+  .address-input-icon {
+    position:absolute; left:14px; top:50%; transform:translateY(-50%);
+    width:18px; height:18px;
+  }
+  .addr-connector {
+    display:flex; align-items:center; padding:6px 0 6px 20px; gap:0;
+  }
+  .addr-dot { width:8px; height:8px; border-radius:50%; background:var(--accent2); flex-shrink:0; }
+  .addr-line { flex:1; height:1px; background:var(--border); margin:0 4px; }
+  .addr-dot2 { width:8px; height:8px; border-radius:50%; background:var(--accent); flex-shrink:0; }
+
+  .row-2 { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  .form-input-group { display:flex; flex-direction:column; gap:6px; }
+  .form-input-group label { font-size:0.75rem; font-weight:500; color:var(--text2); text-transform:uppercase; letter-spacing:0.5px; }
+  .form-input-group input, .form-input-group select {
+    background:var(--bg2); border:1px solid var(--border); border-radius:var(--radius-sm);
+    padding:12px 14px; color:var(--text); font-family:var(--font-body);
+    font-size:0.9rem; outline:none; transition:var(--transition);
+  }
+  .form-input-group input:focus, .form-input-group select:focus { border-color:var(--accent); }
+  .form-input-group select option { background:var(--bg2); }
+
+  .price-preview {
+    background:linear-gradient(135deg, var(--bg2), var(--bg3));
+    border:1px solid var(--border); border-radius:var(--radius);
+    padding:20px; margin-bottom:20px;
+  }
+  .price-preview-label { font-size:0.75rem; color:var(--text2); text-transform:uppercase; letter-spacing:1px; margin-bottom:8px; }
+  .price-main { font-family:var(--font-display); font-size:2rem; font-weight:800; color:var(--accent); }
+  .price-breakdown { display:flex; flex-direction:column; gap:4px; margin-top:12px; padding-top:12px; border-top:1px solid var(--border); }
+  .price-row { display:flex; justify-content:space-between; font-size:0.8rem; color:var(--text2); }
+  .price-row span:last-child { color:var(--text); }
+
+  .service-options { display:flex; gap:10px; margin-bottom:4px; }
+  .service-opt {
+    flex:1; background:var(--bg2); border:2px solid var(--border);
+    border-radius:var(--radius); padding:14px 10px; text-align:center;
+    cursor:pointer; transition:var(--transition);
+  }
+  .service-opt.selected { border-color:var(--accent); background:rgba(232,255,71,0.05); }
+  .service-opt-icon { font-size:1.5rem; margin-bottom:6px; }
+  .service-opt-name { font-family:var(--font-display); font-weight:700; font-size:0.8rem; }
+  .service-opt-time { font-size:0.7rem; color:var(--text2); margin-top:2px; }
+
+  /* ─── MAP PAGE ─── */
+  #map-container { position:relative; height:calc(100vh - 130px); }
+  #map { height:100%; width:100%; }
+  .map-overlay {
+    position:absolute; bottom:0; left:0; right:0;
+    background:linear-gradient(to top, var(--bg) 0%, var(--bg2) 70%, transparent 100%);
+    padding:20px;
+  }
+  .tracking-card {
+    background:var(--bg2); border:1px solid var(--border); border-radius:var(--radius);
+    padding:16px; margin-bottom:12px;
+  }
+  .tracking-status { display:flex; align-items:center; gap:10px; margin-bottom:12px; }
+  .tracking-dot { width:10px; height:10px; border-radius:50%; background:var(--accent); animation:pulse 2s infinite; flex-shrink:0; }
+  .tracking-label { font-family:var(--font-display); font-weight:700; }
+  .tracking-eta { margin-left:auto; font-size:0.8rem; color:var(--accent); font-weight:600; }
+  .partner-row { display:flex; align-items:center; gap:12px; }
+  .partner-avatar { width:44px; height:44px; border-radius:50%; background:var(--bg4); overflow:hidden; flex-shrink:0; border:2px solid var(--border); }
+  .partner-avatar img { width:100%; height:100%; object-fit:cover; }
+  .partner-name { font-weight:600; font-size:0.9rem; }
+  .partner-vehicle { font-size:0.78rem; color:var(--text2); }
+  .partner-rating { margin-left:auto; display:flex; align-items:center; gap:4px; }
+  .star-icon { color:var(--accent); font-size:0.85rem; }
+  .partner-score { font-family:var(--font-display); font-weight:700; font-size:0.9rem; }
+  .contact-btns { display:flex; gap:8px; margin-top:12px; }
+  .contact-btn {
+    flex:1; background:var(--bg3); border:1px solid var(--border);
+    border-radius:var(--radius-sm); padding:10px; text-align:center;
+    font-size:0.8rem; cursor:pointer; transition:var(--transition);
+    display:flex; align-items:center; justify-content:center; gap:6px;
+  }
+  .contact-btn:hover { border-color:var(--accent); }
+  .contact-btn svg { width:16px; height:16px; stroke:var(--accent); }
+
+  /* ─── HISTORY ─── */
+  .history-filters { display:flex; gap:8px; padding:16px 20px 8px; overflow-x:auto; }
+  .history-filters::-webkit-scrollbar { display:none; }
+  .filter-chip {
+    background:var(--bg2); border:1px solid var(--border); border-radius:20px;
+    padding:6px 16px; font-size:0.78rem; white-space:nowrap; cursor:pointer;
+    transition:var(--transition); flex-shrink:0;
+  }
+  .filter-chip.active { background:var(--accent); color:#000; border-color:var(--accent); font-weight:600; }
+
+  .history-list { padding:0 20px; display:flex; flex-direction:column; gap:12px; margin-top:8px; }
+  .history-card {
+    background:var(--bg2); border:1px solid var(--border); border-radius:var(--radius);
+    padding:18px; cursor:pointer; transition:var(--transition);
+  }
+  .history-card:hover { background:var(--bg3); }
+  .history-top { display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:12px; }
+  .history-id { font-family:var(--font-display); font-weight:700; font-size:0.78rem; color:var(--text2); }
+  .history-date { font-size:0.75rem; color:var(--text3); }
+  .status-badge {
+    padding:3px 10px; border-radius:20px; font-size:0.7rem; font-weight:600;
+    text-transform:uppercase; letter-spacing:0.5px;
+  }
+  .status-badge.delivered { background:rgba(46,204,113,0.15); color:var(--success); }
+  .status-badge.transit { background:rgba(232,255,71,0.15); color:var(--accent); }
+  .status-badge.cancelled { background:rgba(231,76,60,0.15); color:var(--danger); }
+  .history-route { display:flex; flex-direction:column; gap:4px; margin-bottom:12px; }
+  .route-item { display:flex; align-items:center; gap:8px; font-size:0.83rem; }
+  .route-dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+  .route-dot.origin { background:var(--accent2); }
+  .route-dot.dest { background:var(--accent); }
+  .route-addr { color:var(--text2); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .history-footer { display:flex; align-items:center; justify-content:space-between; padding-top:12px; border-top:1px solid var(--border); }
+  .history-price { font-family:var(--font-display); font-weight:700; color:var(--accent); }
+  .history-rating { display:flex; gap:3px; }
+  .star { font-size:0.85rem; cursor:pointer; transition:var(--transition); }
+  .star.lit { color:var(--accent); }
+  .star.dim { color:var(--text3); }
+
+  /* ─── PROFILE ─── */
+  .profile-header {
+    background:linear-gradient(135deg, var(--bg2) 0%, var(--bg3) 100%);
+    padding:30px 20px 24px; border-bottom:1px solid var(--border);
+    display:flex; flex-direction:column; align-items:center; gap:12px;
+  }
+  .profile-avatar-wrap { position:relative; }
+  .profile-avatar {
+    width:88px; height:88px; border-radius:50%; background:var(--bg4);
+    border:3px solid var(--accent); overflow:hidden;
+    display:flex; align-items:center; justify-content:center;
+    font-family:var(--font-display); font-weight:800; font-size:2rem; color:var(--accent);
+  }
+  .profile-avatar img { width:100%; height:100%; object-fit:cover; }
+  .avatar-edit {
+    position:absolute; bottom:2px; right:2px;
+    width:26px; height:26px; background:var(--accent); border-radius:50%;
+    display:flex; align-items:center; justify-content:center; cursor:pointer;
+  }
+  .avatar-edit svg { width:13px; height:13px; stroke:#000; }
+  .profile-name { font-family:var(--font-display); font-size:1.3rem; font-weight:800; }
+  .profile-type { font-size:0.78rem; color:var(--text2); background:var(--bg4); border-radius:20px; padding:3px 12px; }
+  .profile-stars { display:flex; gap:4px; }
+  .profile-star { font-size:1.1rem; }
+  .profile-star.lit { color:var(--accent); }
+  .profile-star.dim { color:var(--text3); }
+  .profile-rating-num { font-family:var(--font-display); font-weight:700; font-size:1rem; color:var(--accent); }
+  .profile-stats { display:flex; gap:0; width:100%; margin-top:8px; }
+  .stat-item { flex:1; text-align:center; padding:12px 0; border-right:1px solid var(--border); }
+  .stat-item:last-child { border-right:none; }
+  .stat-value { font-family:var(--font-display); font-weight:800; font-size:1.2rem; }
+  .stat-label { font-size:0.68rem; color:var(--text2); text-transform:uppercase; letter-spacing:0.5px; margin-top:2px; }
+
+  .profile-section { padding:20px; }
+  .profile-section-title { font-family:var(--font-display); font-weight:700; font-size:0.8rem; color:var(--text2); text-transform:uppercase; letter-spacing:1px; margin-bottom:12px; }
+  .profile-field {
+    background:var(--bg2); border:1px solid var(--border); border-radius:var(--radius-sm);
+    padding:14px 16px; display:flex; align-items:center; gap:12px;
+    cursor:pointer; transition:var(--transition); margin-bottom:8px;
+  }
+  .profile-field:hover { border-color:var(--text3); }
+  .field-icon { width:36px; height:36px; background:var(--bg3); border-radius:8px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+  .field-icon svg { width:18px; height:18px; stroke:var(--accent); }
+  .field-info { flex:1; }
+  .field-label { font-size:0.72rem; color:var(--text2); margin-bottom:2px; }
+  .field-value { font-size:0.9rem; font-weight:500; }
+  .field-arrow svg { width:16px; height:16px; stroke:var(--text3); }
+  .profile-menu { padding:0 20px 20px; }
+  .menu-item {
+    display:flex; align-items:center; gap:14px; padding:15px 0;
+    border-bottom:1px solid var(--border); cursor:pointer; transition:var(--transition);
+  }
+  .menu-item:last-child { border-bottom:none; }
+  .menu-item:hover .menu-label { color:var(--accent); }
+  .menu-icon { width:38px; height:38px; background:var(--bg2); border-radius:10px; display:flex; align-items:center; justify-content:center; border:1px solid var(--border); flex-shrink:0; }
+  .menu-icon svg { width:18px; height:18px; stroke:var(--text2); }
+  .menu-label { flex:1; font-size:0.9rem; font-weight:500; }
+  .menu-badge { background:var(--accent2); color:#fff; font-size:0.65rem; font-weight:700; padding:2px 7px; border-radius:10px; }
+  .menu-arrow svg { width:16px; height:16px; stroke:var(--text3); }
+
+  /* ─── MODAL ─── */
+  .modal-backdrop {
+    position:fixed; inset:0; background:rgba(0,0,0,0.75); z-index:800;
+    display:none; align-items:flex-end; justify-content:center;
+    backdrop-filter:blur(4px);
+  }
+  .modal-backdrop.show { display:flex; }
+  .modal {
+    background:var(--bg2); border-radius:var(--radius-lg) var(--radius-lg) 0 0;
+    padding:24px 20px 40px; width:100%; max-width:480px;
+    animation:slideUp 0.35s ease;
+    border:1px solid var(--border); border-bottom:none;
+    max-height:90vh; overflow-y:auto;
+  }
+  .modal-handle { width:40px; height:4px; background:var(--border); border-radius:4px; margin:0 auto 20px; }
+  .modal-title { font-family:var(--font-display); font-weight:800; font-size:1.2rem; margin-bottom:20px; }
+
+  /* ─── TOAST ─── */
+  #toast {
+    position:fixed; top:80px; left:50%; transform:translateX(-50%) translateY(-20px);
+    background:var(--bg2); border:1px solid var(--border); border-radius:var(--radius-sm);
+    padding:12px 20px; font-size:0.85rem; z-index:9000;
+    opacity:0; transition:all 0.3s ease; pointer-events:none;
+    white-space:nowrap; box-shadow:var(--shadow);
+    display:flex; align-items:center; gap:8px;
+  }
+  #toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+  #toast.success { border-color:var(--success); }
+  #toast.error { border-color:var(--danger); }
+
+  /* ─── EDIT PROFILE MODAL ─── */
+  .edit-field-group { margin-bottom:16px; }
+  .edit-field-group label { display:block; font-size:0.72rem; color:var(--text2); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:6px; }
+  .edit-field-group input, .edit-field-group select {
+    width:100%; background:var(--bg3); border:1px solid var(--border);
+    border-radius:var(--radius-sm); padding:12px 14px;
+    color:var(--text); font-family:var(--font-body); font-size:0.9rem; outline:none;
+    transition:var(--transition);
+  }
+  .edit-field-group input:focus, .edit-field-group select:focus { border-color:var(--accent); }
+
+  /* ─── RATING MODAL ─── */
+  .rating-stars { display:flex; gap:12px; justify-content:center; margin:20px 0; }
+  .rating-star { font-size:2.5rem; cursor:pointer; transition:var(--transition); color:var(--text3); }
+  .rating-star.hover, .rating-star.selected { color:var(--accent); transform:scale(1.1); }
+  .rating-comment {
+    width:100%; background:var(--bg3); border:1px solid var(--border);
+    border-radius:var(--radius-sm); padding:12px; color:var(--text);
+    font-family:var(--font-body); font-size:0.9rem; resize:none; outline:none; height:80px;
+  }
+  .rating-comment:focus { border-color:var(--accent); }
+
+  /* ─── LEAFLET OVERRIDES ─── */
+  .leaflet-container { background:#111 !important; }
+  .leaflet-tile { filter: brightness(0.85) invert(1) hue-rotate(180deg) saturate(0.5); }
+  .leaflet-control-zoom a { background:var(--bg2) !important; color:var(--text) !important; border-color:var(--border) !important; }
+  .leaflet-popup-content-wrapper { background:var(--bg2); color:var(--text); border:1px solid var(--border); border-radius:var(--radius-sm); }
+  .leaflet-popup-tip { background:var(--bg2); }
+
+  /* ─── PARTNER MODE ─── */
+  .partner-toggle-bar {
+    background:var(--bg2); border-bottom:1px solid var(--border);
+    padding:12px 20px; display:flex; align-items:center; justify-content:space-between;
+  }
+  .toggle-label { font-size:0.85rem; font-weight:500; }
+  .toggle-switch {
+    width:52px; height:28px; background:var(--bg4); border-radius:14px;
+    position:relative; cursor:pointer; transition:var(--transition); border:1px solid var(--border);
+  }
+  .toggle-switch.on { background:var(--success); border-color:var(--success); }
+  .toggle-thumb {
+    position:absolute; top:3px; left:3px; width:20px; height:20px;
+    background:#fff; border-radius:50%; transition:var(--transition);
+    box-shadow:0 2px 4px rgba(0,0,0,0.3);
+  }
+  .toggle-switch.on .toggle-thumb { transform:translateX(24px); }
+
+  .earnings-card {
+    background:linear-gradient(135deg, #1a1a2e, #16213e);
+    border:1px solid var(--border); border-radius:var(--radius);
+    padding:20px; margin:16px 20px;
+  }
+  .earnings-today { font-size:0.75rem; color:var(--text2); text-transform:uppercase; letter-spacing:1px; }
+  .earnings-amount { font-family:var(--font-display); font-size:2.2rem; font-weight:800; color:var(--accent); margin:4px 0; }
+  .earnings-trips { font-size:0.8rem; color:var(--text2); }
+
+  .request-alert {
+    position:fixed; bottom:80px; left:20px; right:20px; z-index:700;
+    background:var(--bg2); border:2px solid var(--accent); border-radius:var(--radius);
+    padding:16px; box-shadow:var(--shadow-accent);
+    animation:slideUp 0.3s ease;
+  }
+  .req-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; }
+  .req-badge { background:var(--accent); color:#000; font-family:var(--font-display); font-weight:800; font-size:0.7rem; padding:4px 10px; border-radius:20px; }
+  .req-timer { font-family:var(--font-display); font-weight:700; font-size:1rem; color:var(--accent); }
+  .req-route { font-size:0.85rem; color:var(--text2); margin-bottom:12px; }
+  .req-price { font-family:var(--font-display); font-size:1.4rem; font-weight:800; color:var(--accent); margin-bottom:12px; }
+  .req-btns { display:flex; gap:10px; }
+  .req-accept { flex:2; background:var(--accent); color:#000; border:none; border-radius:var(--radius-sm); padding:12px; font-family:var(--font-display); font-weight:700; cursor:pointer; }
+  .req-decline { flex:1; background:var(--bg3); color:var(--text); border:1px solid var(--border); border-radius:var(--radius-sm); padding:12px; font-family:var(--font-display); font-weight:600; cursor:pointer; }
+
+  .hidden { display:none !important; }
+  .partner-only { display:none; }
+  .is-partner .partner-only { display:block; }
+  .is-partner .client-only { display:none; }
+</style>
+</head>
+<body>
+
+<!-- SPLASH -->
+<div id="splash">
+  <div class="splash-logo">PROJETO<span>Y</span></div>
+  <div class="splash-sub">Entregas • Rápido • Seguro</div>
+  <div class="splash-bar"><div class="splash-fill"></div></div>
+</div>
+
+<!-- AUTH -->
+<div id="auth-screen">
+  <div class="auth-card">
+    <div class="auth-logo">PROJETO<span>Y</span></div>
+    <div class="auth-tagline">Sua plataforma de entregas urbanas</div>
+    <div class="auth-tabs">
+      <div class="auth-tab active" onclick="setAuthType('login')">Entrar</div>
+      <div class="auth-tab" onclick="setAuthType('register')">Cadastrar</div>
+    </div>
+    <div id="login-form">
+      <div class="input-group">
+        <label>E-mail</label>
+        <input type="email" id="login-email" placeholder="seu@email.com" value="cliente@demo.com">
+      </div>
+      <div class="input-group">
+        <label>Senha</label>
+        <input type="password" id="login-pass" placeholder="••••••••" value="123456">
+      </div>
+      <div class="input-group">
+        <label>Entrar como</label>
+        <select id="login-type">
+          <option value="client">Cliente (Solicitante)</option>
+          <option value="partner">Parceiro (Entregador)</option>
+        </select>
+      </div>
+      <button class="btn-primary" onclick="doLogin()">Entrar</button>
+    </div>
+    <div id="register-form" class="hidden">
+      <div class="input-group">
+        <label>Nome Completo</label>
+        <input type="text" id="reg-name" placeholder="Seu nome completo">
+      </div>
+      <div class="input-group">
+        <label>E-mail</label>
+        <input type="email" id="reg-email" placeholder="seu@email.com">
+      </div>
+      <div class="input-group">
+        <label>Telefone</label>
+        <input type="tel" id="reg-phone" placeholder="(00) 00000-0000">
+      </div>
+      <div class="input-group">
+        <label>Senha</label>
+        <input type="password" id="reg-pass" placeholder="Mínimo 6 caracteres">
+      </div>
+      <div class="input-group">
+        <label>Tipo de conta</label>
+        <select id="reg-type">
+          <option value="client">Cliente (Solicitante)</option>
+          <option value="partner">Parceiro (Entregador)</option>
+        </select>
+      </div>
+      <button class="btn-primary" onclick="doRegister()">Criar Conta</button>
+    </div>
+    <div class="auth-switch">Problemas para entrar? <a href="#">Recuperar senha</a></div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <div class="topbar">
+    <div class="topbar-logo">PROJETO<span>Y</span></div>
+    <div class="topbar-right">
+      <div class="notif-btn" onclick="showToast('Nenhuma notificação nova','success')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:18px;height:18px;stroke:#888">
+          <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+          <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+        </svg>
+        <div class="notif-dot"></div>
+      </div>
+      <div class="avatar-btn" onclick="goTo('profile')" id="topbar-avatar">C</div>
+    </div>
+  </div>
+
+  <!-- PARTNER TOGGLE -->
+  <div class="partner-toggle-bar partner-only" id="partner-bar">
+    <div>
+      <div class="toggle-label">Status: <strong id="partner-status-text">Offline</strong></div>
+      <div style="font-size:0.72rem;color:var(--text2);margin-top:2px">Ative para receber chamados</div>
+    </div>
+    <div class="toggle-switch" id="partner-toggle" onclick="togglePartnerStatus()">
+      <div class="toggle-thumb"></div>
+    </div>
+  </div>
+
+  <div class="content" id="main-content">
+    <!-- HOME -->
+    <div class="page active" id="page-home">
+      <div class="home-hero">
+        <div class="home-greeting">Bom dia 👋</div>
+        <div class="home-name" id="home-username">Usuário</div>
+        <div class="status-bar">
+          <div class="status-pill"><div class="status-dot"></div>Sistema Online</div>
+          <div class="status-pill" id="home-type-badge">Cliente</div>
+        </div>
+      </div>
+
+      <!-- Client Home -->
+      <div class="client-only">
+        <div class="quick-actions">
+          <div class="qa-card primary" onclick="goTo('request')">
+            <div class="qa-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/>
+              </svg>
+            </div>
+            <div class="qa-text">
+              <div class="qa-title">Nova Entrega</div>
+              <div class="qa-sub">Solicite um parceiro agora</div>
+            </div>
+          </div>
+          <div class="qa-card" onclick="goTo('tracking')">
+            <div class="qa-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>
+              </svg>
+            </div>
+            <div class="qa-title">Rastrear</div>
+            <div class="qa-sub">Acompanhar entrega</div>
+          </div>
+          <div class="qa-card" onclick="goTo('history')">
+            <div class="qa-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+              </svg>
+            </div>
+            <div class="qa-title">Histórico</div>
+            <div class="qa-sub">Entregas anteriores</div>
+          </div>
+        </div>
+        <div class="section-header">
+          <div class="section-title">Entregas Recentes</div>
+          <div class="section-link" onclick="goTo('history')">Ver tudo</div>
+        </div>
+        <div class="recent-list" id="recent-list"></div>
+      </div>
+
+      <!-- Partner Home -->
+      <div class="partner-only">
+        <div class="earnings-card">
+          <div class="earnings-today">Ganhos de hoje</div>
+          <div class="earnings-amount" id="partner-earnings">R$ 0,00</div>
+          <div class="earnings-trips" id="partner-trips">0 entregas realizadas</div>
+        </div>
+        <div class="section-header">
+          <div class="section-title">Suas Entregas Hoje</div>
+          <div class="section-link" onclick="goTo('history')">Ver tudo</div>
+        </div>
+        <div class="recent-list" id="partner-recent-list"></div>
+      </div>
+    </div>
+
+    <!-- REQUEST -->
+    <div class="page client-only" id="page-request">
+      <div class="form-page">
+        <div class="form-section">
+          <div class="form-section-title">Endereços</div>
+          <div class="address-input-wrap" style="margin-bottom:8px">
+            <svg class="address-input-icon" viewBox="0 0 24 24" fill="none" stroke="#ff6b35" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4"/></svg>
+            <input type="text" id="addr-origin" placeholder="Endereço de origem (coleta)" value="Rua das Flores, 123 - Centro">
+          </div>
+          <div class="addr-connector">
+            <div class="addr-dot"></div>
+            <div class="addr-line"></div>
+            <div class="addr-dot2"></div>
+          </div>
+          <div class="address-input-wrap">
+            <svg class="address-input-icon" viewBox="0 0 24 24" fill="none" stroke="#E8FF47" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+            <input type="text" id="addr-dest" placeholder="Endereço de destino (entrega)" value="Av. Paulista, 1578 - Bela Vista">
+          </div>
+        </div>
+
+        <div class="form-section">
+          <div class="form-section-title">Tipo de Serviço</div>
+          <div class="service-options">
+            <div class="service-opt selected" onclick="selectService(this,'moto')" data-service="moto">
+              <div class="service-opt-icon">🏍️</div>
+              <div class="service-opt-name">Moto</div>
+              <div class="service-opt-time">~15 min</div>
+            </div>
+            <div class="service-opt" onclick="selectService(this,'cargo')" data-service="cargo">
+              <div class="service-opt-icon">📦</div>
+              <div class="service-opt-name">Cargo</div>
+              <div class="service-opt-time">~25 min</div>
+            </div>
+            <div class="service-opt" onclick="selectService(this,'express')" data-service="express">
+              <div class="service-opt-icon">⚡</div>
+              <div class="service-opt-name">Express</div>
+              <div class="service-opt-time">~8 min</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-section">
+          <div class="form-section-title">Produto (Opcional)</div>
+          <div class="row-2">
+            <div class="form-input-group">
+              <label>Peso aprox. (kg)</label>
+              <input type="number" id="prod-weight" placeholder="ex: 2.5" step="0.1" min="0" oninput="calcPrice()">
+            </div>
+            <div class="form-input-group">
+              <label>Tamanho</label>
+              <select id="prod-size" onchange="calcPrice()">
+                <option value="small">Pequeno</option>
+                <option value="medium">Médio</option>
+                <option value="large">Grande</option>
+                <option value="xlarge">Extra Grande</option>
+              </select>
+            </div>
+          </div>
+          <div style="margin-top:12px" class="form-input-group">
+            <label>Tipo do produto (opcional)</label>
+            <input type="text" id="prod-type" placeholder="ex: documentos, eletrônicos, alimentos...">
+          </div>
+        </div>
+
+        <div class="price-preview" id="price-preview">
+          <div class="price-preview-label">Estimativa de valor</div>
+          <div class="price-main" id="price-main">R$ 18,90</div>
+          <div class="price-breakdown">
+            <div class="price-row"><span>Tarifa base</span><span id="pb-base">R$ 5,90</span></div>
+            <div class="price-row"><span>Distância (~8,2 km)</span><span id="pb-dist">R$ 9,84</span></div>
+            <div class="price-row"><span>Peso/Tamanho</span><span id="pb-extra">R$ 3,16</span></div>
+            <div class="price-row"><span>Taxa plataforma (10%)</span><span id="pb-fee">R$ 1,88</span></div>
+          </div>
+        </div>
+
+        <button class="btn-primary" onclick="confirmRequest()" style="width:100%;font-size:1rem;">
+          Solicitar Entregador →
+        </button>
+      </div>
+    </div>
+
+    <!-- TRACKING -->
+    <div class="page" id="page-tracking">
+      <div id="map-container">
+        <div id="map"></div>
+        <div class="map-overlay">
+          <div class="tracking-card" id="tracking-card">
+            <div class="tracking-status">
+              <div class="tracking-dot"></div>
+              <div class="tracking-label" id="tracking-label">Parceiro a caminho</div>
+              <div class="tracking-eta" id="tracking-eta">⏱ 8 min</div>
+            </div>
+            <div class="partner-row">
+              <div class="partner-avatar">
+                <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=delivery1" onerror="this.style.display='none'">
+              </div>
+              <div>
+                <div class="partner-name">Ricardo M.</div>
+                <div class="partner-vehicle">Honda CG 160 • Moto • ABC-1234</div>
+              </div>
+              <div class="partner-rating">
+                <span class="star-icon">★</span>
+                <span class="partner-score">4.8</span>
+              </div>
+            </div>
+            <div class="contact-btns">
+              <div class="contact-btn" onclick="showToast('Ligando para o parceiro...','success')">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.65 3.33 2 2 0 0 1 3.62 1h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.64a16 16 0 0 0 5.45 5.45l.96-.96a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 21 16.92z"/></svg>
+                Ligar
+              </div>
+              <div class="contact-btn" onclick="showToast('Chat em breve...','success')">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                Mensagem
+              </div>
+              <div class="contact-btn" onclick="showToast('Entrega cancelada','error')">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+                Cancelar
+              </div>
+            </div>
+          </div>
+          <div id="no-tracking" class="hidden">
+            <div style="text-align:center;padding:24px 0;color:var(--text2)">
+              <div style="font-size:2rem;margin-bottom:8px">📍</div>
+              <div style="font-family:var(--font-display);font-weight:700;margin-bottom:4px">Nenhuma entrega ativa</div>
+              <div style="font-size:0.85rem">Solicite uma entrega para rastrear aqui</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- HISTORY -->
+    <div class="page" id="page-history">
+      <div style="padding:16px 20px 8px">
+        <div style="font-family:var(--font-display);font-size:1.2rem;font-weight:800">Histórico</div>
+        <div style="color:var(--text2);font-size:0.82rem;margin-top:2px">Todas as suas entregas</div>
+      </div>
+      <div class="history-filters">
+        <div class="filter-chip active" onclick="filterHistory(this,'all')">Todas</div>
+        <div class="filter-chip" onclick="filterHistory(this,'delivered')">Entregues</div>
+        <div class="filter-chip" onclick="filterHistory(this,'transit')">Em andamento</div>
+        <div class="filter-chip" onclick="filterHistory(this,'cancelled')">Canceladas</div>
+      </div>
+      <div class="history-list" id="history-list"></div>
+    </div>
+
+    <!-- PROFILE -->
+    <div class="page" id="page-profile">
+      <div class="profile-header">
+        <div class="profile-avatar-wrap">
+          <div class="profile-avatar" id="profile-avatar-display">U</div>
+          <div class="avatar-edit" onclick="document.getElementById('avatar-file').click()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>
+          </div>
+        </div>
+        <input type="file" id="avatar-file" accept="image/*" class="hidden" onchange="updateAvatar(event)">
+        <div class="profile-name" id="profile-name-display">Usuário</div>
+        <div class="profile-type" id="profile-type-display">Cliente</div>
+        <div style="display:flex;align-items:center;gap:8px;margin-top:4px">
+          <div class="profile-stars" id="profile-stars-display"></div>
+          <div class="profile-rating-num" id="profile-rating-num">0.0</div>
+          <div style="font-size:0.75rem;color:var(--text2)" id="profile-rating-count">(0 avaliações)</div>
+        </div>
+        <div class="profile-stats" style="background:var(--bg3);border-radius:var(--radius);border:1px solid var(--border);overflow:hidden;width:100%;margin-top:12px">
+          <div class="stat-item"><div class="stat-value" id="stat-deliveries">0</div><div class="stat-label">Entregas</div></div>
+          <div class="stat-item"><div class="stat-value" id="stat-km">0</div><div class="stat-label">Km</div></div>
+          <div class="stat-item"><div class="stat-value" id="stat-spent">R$0</div><div class="stat-label" id="stat-spent-label">Gasto</div></div>
+        </div>
+      </div>
+
+      <div class="profile-section">
+        <div class="profile-section-title">Informações Pessoais</div>
+        <div class="profile-field" onclick="openEditModal('name')">
+          <div class="field-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
+          <div class="field-info"><div class="field-label">Nome completo</div><div class="field-value" id="field-name">—</div></div>
+          <div class="field-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></div>
+        </div>
+        <div class="profile-field" onclick="openEditModal('email')">
+          <div class="field-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg></div>
+          <div class="field-info"><div class="field-label">E-mail</div><div class="field-value" id="field-email">—</div></div>
+          <div class="field-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></div>
+        </div>
+        <div class="profile-field" onclick="openEditModal('phone')">
+          <div class="field-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.65 3.33 2 2 0 0 1 3.62 1h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.64a16 16 0 0 0 5.45 5.45l.96-.96a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 21 16.92z"/></svg></div>
+          <div class="field-info"><div class="field-label">Telefone</div><div class="field-value" id="field-phone">—</div></div>
+          <div class="field-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></div>
+        </div>
+        <div class="profile-field" onclick="openEditModal('birth')">
+          <div class="field-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>
+          <div class="field-info"><div class="field-label">Data de Nascimento</div><div class="field-value" id="field-birth">—</div></div>
+          <div class="field-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></div>
+        </div>
+        <div class="profile-field" onclick="openEditModal('gender')">
+          <div class="field-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M20 21a8 8 0 1 0-16 0"/></svg></div>
+          <div class="field-info"><div class="field-label">Gênero</div><div class="field-value" id="field-gender">—</div></div>
+          <div class="field-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></div>
+        </div>
+      </div>
+
+      <div class="profile-menu">
+        <div class="profile-section-title" style="padding:0;margin-bottom:12px">Configurações</div>
+        <div class="menu-item" onclick="showToast('Em breve: Método de pagamento','success')">
+          <div class="menu-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg></div>
+          <div class="menu-label">Pagamento</div>
+          <div class="menu-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></div>
+        </div>
+        <div class="menu-item" onclick="showToast('Em breve: Endereços salvos','success')">
+          <div class="menu-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg></div>
+          <div class="menu-label">Endereços Salvos</div>
+          <div class="menu-badge">Novo</div>
+          <div class="menu-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></div>
+        </div>
+        <div class="menu-item" onclick="showToast('Em breve: Notificações','success')">
+          <div class="menu-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></div>
+          <div class="menu-label">Notificações</div>
+          <div class="menu-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></div>
+        </div>
+        <div class="menu-item" onclick="showToast('Em breve: Central de ajuda','success')">
+          <div class="menu-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div>
+          <div class="menu-label">Ajuda & Suporte</div>
+          <div class="menu-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></div>
+        </div>
+        <div class="menu-item" onclick="doLogout()" style="margin-top:8px">
+          <div class="menu-icon"><svg viewBox="0 0 24 24" fill="none" stroke="#E74C3C" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg></div>
+          <div class="menu-label" style="color:var(--danger)">Sair da Conta</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- BOTTOM NAV -->
+  <div class="bottom-nav">
+    <div class="nav-item active" onclick="goTo('home')" id="nav-home">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      <span>Início</span>
+    </div>
+    <div class="nav-item client-only" onclick="goTo('request')" id="nav-request">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+      <span>Solicitar</span>
+    </div>
+    <div class="nav-item" onclick="goTo('tracking')" id="nav-tracking">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+      <span>Mapa</span>
+    </div>
+    <div class="nav-item" onclick="goTo('history')" id="nav-history">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+      <span>Histórico</span>
+    </div>
+    <div class="nav-item" onclick="goTo('profile')" id="nav-profile">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      <span>Perfil</span>
+    </div>
+  </div>
+</div>
+
+<!-- EDIT PROFILE MODAL -->
+<div class="modal-backdrop" id="edit-modal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="edit-modal-title">Editar</div>
+    <div id="edit-modal-body"></div>
+    <button class="btn-primary" onclick="saveEditModal()">Salvar Alterações</button>
+    <button onclick="closeModal('edit-modal')" style="width:100%;background:none;border:none;color:var(--text2);padding:12px;cursor:pointer;margin-top:8px;font-family:var(--font-body)">Cancelar</button>
+  </div>
+</div>
+
+<!-- RATING MODAL -->
+<div class="modal-backdrop" id="rating-modal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Avaliar Entrega</div>
+    <div style="text-align:center;color:var(--text2);font-size:0.85rem;margin-bottom:16px">Como foi sua experiência com o parceiro?</div>
+    <div class="rating-stars" id="rating-stars">
+      <span class="rating-star" onclick="setRating(1)">★</span>
+      <span class="rating-star" onclick="setRating(2)">★</span>
+      <span class="rating-star" onclick="setRating(3)">★</span>
+      <span class="rating-star" onclick="setRating(4)">★</span>
+      <span class="rating-star" onclick="setRating(5)">★</span>
+    </div>
+    <textarea class="rating-comment" id="rating-comment" placeholder="Deixe um comentário (opcional)..."></textarea>
+    <button class="btn-primary" onclick="submitRating()" style="margin-top:16px">Enviar Avaliação</button>
+    <button onclick="closeModal('rating-modal')" style="width:100%;background:none;border:none;color:var(--text2);padding:12px;cursor:pointer;font-family:var(--font-body)">Pular</button>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div id="toast"></div>
+
+<!-- PARTNER REQUEST ALERT (demo) -->
+<div id="request-alert" class="request-alert hidden">
+  <div class="req-header">
+    <div class="req-badge">NOVA SOLICITAÇÃO</div>
+    <div class="req-timer" id="req-timer">15</div>
+  </div>
+  <div class="req-route" id="req-route">📍 Rua das Flores, 123 → Av. Paulista, 1578</div>
+  <div class="req-price" id="req-price">R$ 18,90</div>
+  <div class="req-btns">
+    <button class="req-accept" onclick="acceptRequest()">✓ Aceitar</button>
+    <button class="req-decline" onclick="declineRequest()">Recusar</button>
+  </div>
+</div>
+
+<script>
+// ─── STATE ───
+let currentUser = null;
+let currentPage = 'home';
+let mapInstance = null;
+let partnerMarker = null;
+let routeLine = null;
+let mapInitialized = false;
+let partnerOnline = false;
+let selectedRating = 0;
+let reqTimerInterval = null;
+let activeDelivery = null;
+let editField = null;
+
+const DEMO_USERS = {
+  'cliente@demo.com': {
+    type:'client', name:'Carlos Mendes', email:'cliente@demo.com',
+    phone:'(11) 99999-0001', birth:'1990-05-15', gender:'Masculino',
+    rating:4.7, ratingCount:23, deliveries:15, km:142, spent:287.50
+  },
+  'parceiro@demo.com': {
+    type:'partner', name:'Ricardo Moura', email:'parceiro@demo.com',
+    phone:'(11) 99999-0002', birth:'1988-11-22', gender:'Masculino',
+    rating:4.9, ratingCount:87, deliveries:134, km:1840, earned:3200
+  }
+};
+
+const HISTORY_DATA = [
+  { id:'PY-001', status:'delivered', origin:'Rua das Flores, 123 - Centro', dest:'Av. Paulista, 1578 - Bela Vista', date:'04/05/2026 14:32', arrival:'04/05/2026 14:51', price:18.90, product:'Documentos', weight:0.3, size:'Pequeno', partner:'Ricardo M.', rated:true, ratingGiven:5 },
+  { id:'PY-002', status:'delivered', origin:'Shopping Ibirapuera - Moema', dest:'Rua Oscar Freire, 900', date:'03/05/2026 10:15', arrival:'03/05/2026 10:44', price:24.50, product:'Eletrônicos', weight:1.2, size:'Médio', partner:'Ana P.', rated:false },
+  { id:'PY-003', status:'transit', origin:'Mercado Central', dest:'Alameda Santos, 455', date:'04/05/2026 16:10', arrival:'—', price:15.30, product:'Alimentos', weight:3.0, size:'Médio', partner:'João S.', rated:false },
+  { id:'PY-004', status:'cancelled', origin:'Av. Brigadeiro Faria Lima', dest:'Rua Augusta, 2222', date:'02/05/2026 09:00', arrival:'—', price:0, product:'', rated:false },
+  { id:'PY-005', status:'delivered', origin:'Terminal Tietê', dest:'Rua da Consolação, 100', date:'01/05/2026 18:45', arrival:'01/05/2026 19:08', price:22.10, product:'Roupas', weight:2.0, size:'Grande', partner:'Marina T.', rated:true, ratingGiven:4 },
+];
+
+// ─── SPLASH ───
+setTimeout(() => {
+  document.getElementById('splash').classList.add('hide');
+  setTimeout(() => {
+    document.getElementById('splash').style.display = 'none';
+    document.getElementById('auth-screen').style.display = 'flex';
+  }, 600);
+}, 2400);
+
+// ─── AUTH ───
+function setAuthType(type) {
+  document.querySelectorAll('.auth-tab').forEach((t,i) => t.classList.toggle('active', (type==='login'&&i===0)||(type==='register'&&i===1)));
+  document.getElementById('login-form').classList.toggle('hidden', type==='register');
+  document.getElementById('register-form').classList.toggle('hidden', type==='login');
+}
+
+function doLogin() {
+  const email = document.getElementById('login-email').value;
+  const pass = document.getElementById('login-pass').value;
+  const type = document.getElementById('login-type').value;
+  if (!email || !pass) { showToast('Preencha todos os campos','error'); return; }
+  const user = DEMO_USERS[email] || {
+    type, name: email.split('@')[0], email, phone:'', birth:'', gender:'',
+    rating:0, ratingCount:0, deliveries:0, km:0, spent:0, earned:0
+  };
+  currentUser = { ...user, type };
+  loginSuccess();
+}
+
+function doRegister() {
+  const name = document.getElementById('reg-name').value;
+  const email = document.getElementById('reg-email').value;
+  const phone = document.getElementById('reg-phone').value;
+  const pass = document.getElementById('reg-pass').value;
+  const type = document.getElementById('reg-type').value;
+  if (!name || !email || !pass) { showToast('Preencha os campos obrigatórios','error'); return; }
+  currentUser = { type, name, email, phone, birth:'', gender:'', rating:0, ratingCount:0, deliveries:0, km:0, spent:0, earned:0 };
+  loginSuccess();
+}
+
+function loginSuccess() {
+  document.getElementById('auth-screen').classList.add('hide');
+  setTimeout(() => {
+    document.getElementById('auth-screen').style.display = 'none';
+    document.getElementById('app').classList.add('show');
+    initApp();
+  }, 400);
+  showToast(`Bem-vindo, ${currentUser.name.split(' ')[0]}! 👋`, 'success');
+}
+
+function doLogout() {
+  currentUser = null;
+  document.getElementById('app').classList.remove('show');
+  document.getElementById('auth-screen').style.display = 'flex';
+  document.getElementById('auth-screen').classList.remove('hide');
+  if (mapInstance) { mapInstance.remove(); mapInstance = null; mapInitialized = false; }
+}
+
+// ─── APP INIT ───
+function initApp() {
+  const u = currentUser;
+  // Body class for partner/client
+  document.body.classList.toggle('is-partner', u.type === 'partner');
+
+  // Topbar avatar
+  const av = document.getElementById('topbar-avatar');
+  av.textContent = u.name.charAt(0).toUpperCase();
+
+  // Home
+  document.getElementById('home-username').textContent = u.name.split(' ')[0];
+  document.getElementById('home-type-badge').textContent = u.type === 'partner' ? '🏍️ Parceiro' : '📦 Cliente';
+
+  // Profile
+  renderProfile();
+  renderHistory();
+  renderRecent();
+  calcPrice();
+  goTo('home');
+}
+
+// ─── NAVIGATION ───
+function goTo(page) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  const pg = document.getElementById('page-'+page);
+  if (pg) pg.classList.add('active');
+  const nav = document.getElementById('nav-'+page);
+  if (nav) nav.classList.add('active');
+  currentPage = page;
+  document.getElementById('main-content').scrollTop = 0;
+
+  if (page === 'tracking') {
+    setTimeout(initMap, 100);
+  }
+}
+
+// ─── MAP ───
+function initMap() {
+  if (mapInitialized) return;
+  mapInitialized = true;
+
+  mapInstance = L.map('map', { zoomControl:true, attributionControl:false }).setView([-23.5617, -46.6558], 14);
+
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom:19
+  }).addTo(mapInstance);
+
+  const originLatLng = [-23.5505, -46.6333];
+  const destLatLng   = [-23.5617, -46.6558];
+
+  // Custom icons
+  const iconO = L.divIcon({ className:'', html:'<div style="width:14px;height:14px;background:#FF6B35;border-radius:50%;border:3px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,0.5)"></div>', iconAnchor:[7,7] });
+  const iconD = L.divIcon({ className:'', html:'<div style="width:14px;height:14px;background:#E8FF47;border-radius:50%;border:3px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,0.5)"></div>', iconAnchor:[7,7] });
+  const iconM = L.divIcon({ className:'', html:'<div style="font-size:22px;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.8))">🏍️</div>', iconAnchor:[11,11] });
+
+  L.marker(originLatLng, {icon:iconO}).addTo(mapInstance).bindPopup('<b style="color:#FF6B35">Origem</b><br>Rua das Flores, 123');
+  L.marker(destLatLng, {icon:iconD}).addTo(mapInstance).bindPopup('<b style="color:#E8FF47">Destino</b><br>Av. Paulista, 1578');
+
+  // Route line
+  routeLine = L.polyline([originLatLng, destLatLng], { color:'#E8FF47', weight:3, opacity:0.7, dashArray:'8,6' }).addTo(mapInstance);
+
+  // Animate moto marker
+  partnerMarker = L.marker(originLatLng, {icon:iconM}).addTo(mapInstance);
+
+  let t = 0;
+  const steps = 200;
+  const animate = setInterval(() => {
+    t++;
+    if (t > steps) { clearInterval(animate); return; }
+    const lat = originLatLng[0] + (destLatLng[0] - originLatLng[0]) * (t/steps);
+    const lng = originLatLng[1] + (destLatLng[1] - originLatLng[1]) * (t/steps);
+    partnerMarker.setLatLng([lat, lng]);
+    const remaining = Math.max(1, Math.round(8 * (1 - t/steps)));
+    document.getElementById('tracking-eta').textContent = `⏱ ${remaining} min`;
+    if (t === steps) {
+      document.getElementById('tracking-label').textContent = '✅ Entregue!';
+      document.getElementById('tracking-eta').textContent = 'Concluído';
+      showToast('Entrega concluída! Avalie o parceiro.', 'success');
+      setTimeout(() => openModal('rating-modal'), 1500);
+    }
+  }, 100);
+}
+
+// ─── PRICE CALC ───
+function calcPrice() {
+  const serviceMultipliers = { moto:1.0, cargo:1.4, express:1.8 };
+  const sizeExtra = { small:0, medium:2, large:5, xlarge:10 };
+  const sel = document.querySelector('.service-opt.selected');
+  const service = sel ? sel.dataset.service : 'moto';
+  const mult = serviceMultipliers[service] || 1.0;
+  const weight = parseFloat(document.getElementById('prod-weight')?.value) || 0;
+  const size = document.getElementById('prod-size')?.value || 'small';
+  const base = 5.90 * mult;
+  const dist = 8.2 * 1.20 * mult;
+  const extra = (weight * 0.8 + sizeExtra[size]) * mult;
+  const subtotal = base + dist + extra;
+  const fee = subtotal * 0.10;
+  const total = subtotal + fee;
+  document.getElementById('price-main').textContent = `R$ ${total.toFixed(2).replace('.',',')}`;
+  document.getElementById('pb-base').textContent = `R$ ${base.toFixed(2).replace('.',',')}`;
+  document.getElementById('pb-dist').textContent = `R$ ${dist.toFixed(2).replace('.',',')}`;
+  document.getElementById('pb-extra').textContent = `R$ ${extra.toFixed(2).replace('.',',')}`;
+  document.getElementById('pb-fee').textContent = `R$ ${fee.toFixed(2).replace('.',',')}`;
+}
+
+function selectService(el, service) {
+  document.querySelectorAll('.service-opt').forEach(o => o.classList.remove('selected'));
+  el.classList.add('selected');
+  calcPrice();
+}
+
+// ─── REQUEST ───
+function confirmRequest() {
+  const origin = document.getElementById('addr-origin').value;
+  const dest = document.getElementById('addr-dest').value;
+  if (!origin || !dest) { showToast('Preencha os endereços','error'); return; }
+  showToast('Procurando parceiro disponível...','success');
+  activeDelivery = { origin, dest, price: document.getElementById('price-main').textContent };
+  setTimeout(() => {
+    showToast('Parceiro encontrado! Ricardo M. está a caminho 🏍️','success');
+    goTo('tracking');
+    setTimeout(initMap, 200);
+  }, 2500);
+}
+
+// ─── HISTORY ───
+function renderHistory(filter='all') {
+  const list = document.getElementById('history-list');
+  const data = filter === 'all' ? HISTORY_DATA : HISTORY_DATA.filter(d => d.status === filter);
+  list.innerHTML = data.map(d => `
+    <div class="history-card" onclick="showHistoryDetail('${d.id}')">
+      <div class="history-top">
+        <div>
+          <div class="history-id">#${d.id}</div>
+          <div class="history-date">${d.date}</div>
+        </div>
+        <span class="status-badge ${d.status}">${d.status==='delivered'?'Entregue':d.status==='transit'?'Em andamento':'Cancelado'}</span>
+      </div>
+      <div class="history-route">
+        <div class="route-item"><div class="route-dot origin"></div><div class="route-addr">${d.origin}</div></div>
+        <div class="route-item"><div class="route-dot dest"></div><div class="route-addr">${d.dest}</div></div>
+      </div>
+      ${d.product ? `<div style="font-size:0.78rem;color:var(--text2);margin-bottom:10px">📦 ${d.product}${d.weight?' · '+d.weight+'kg':''} · ${d.size||''}</div>` : ''}
+      <div class="history-footer">
+        <div class="history-price">${d.status==='cancelled'?'—':d.price.toLocaleString('pt-BR',{style:'currency',currency:'BRL'})}</div>
+        <div class="history-rating">
+          ${d.rated ? [1,2,3,4,5].map(s=>`<span class="star ${s<=d.ratingGiven?'lit':'dim'}">★</span>`).join('') : (d.status==='delivered'?`<span style="font-size:0.75rem;color:var(--accent);cursor:pointer" onclick="event.stopPropagation();openModal('rating-modal')">Avaliar →</span>`:'') }
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function filterHistory(el, filter) {
+  document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  renderHistory(filter);
+}
+
+function showHistoryDetail(id) {
+  showToast(`Detalhes do pedido #${id}`,'success');
+}
+
+// ─── RECENT ───
+function renderRecent() {
+  const list = document.getElementById('recent-list');
+  const pList = document.getElementById('partner-recent-list');
+  const items = HISTORY_DATA.slice(0,3);
+  const html = items.map(d => `
+    <div class="delivery-card" onclick="goTo('history')">
+      <div class="delivery-icon ${d.status}">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          ${d.status==='delivered'?'<path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>'
+          :d.status==='transit'?'<path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>'
+          :'<circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/>'}
+        </svg>
+      </div>
+      <div class="delivery-info">
+        <div class="delivery-route">${d.origin.split('-')[0].trim()} → ${d.dest.split('-')[0].trim()}</div>
+        <div class="delivery-meta">${d.date} · ${d.status==='delivered'?'Entregue':d.status==='transit'?'Em andamento':'Cancelado'}</div>
+      </div>
+      <div class="delivery-price">${d.status==='cancelled'?'—':d.price.toLocaleString('pt-BR',{style:'currency',currency:'BRL'})}</div>
+    </div>
+  `).join('');
+  if (list) list.innerHTML = html;
+  if (pList) pList.innerHTML = html;
+}
+
+// ─── PROFILE ───
+function renderProfile() {
+  const u = currentUser;
+  document.getElementById('profile-name-display').textContent = u.name;
+  document.getElementById('profile-type-display').textContent = u.type==='partner' ? '🏍️ Entregador Parceiro' : '📦 Cliente Solicitante';
+  document.getElementById('profile-avatar-display').textContent = u.name.charAt(0).toUpperCase();
+  document.getElementById('field-name').textContent = u.name;
+  document.getElementById('field-email').textContent = u.email;
+  document.getElementById('field-phone').textContent = u.phone || 'Não informado';
+  document.getElementById('field-birth').textContent = u.birth ? formatDate(u.birth) : 'Não informado';
+  document.getElementById('field-gender').textContent = u.gender || 'Não informado';
+  document.getElementById('profile-rating-num').textContent = u.rating.toFixed(1);
+  document.getElementById('profile-rating-count').textContent = `(${u.ratingCount} avaliações)`;
+  document.getElementById('stat-deliveries').textContent = u.deliveries;
+  document.getElementById('stat-km').textContent = u.km;
+  if (u.type === 'partner') {
+    document.getElementById('stat-spent').textContent = `R$${u.earned}`;
+    document.getElementById('stat-spent-label').textContent = 'Ganho';
+    document.getElementById('partner-earnings').textContent = `R$ ${(u.earned * 0.1).toFixed(2).replace('.',',')}`;
+    document.getElementById('partner-trips').textContent = `${Math.floor(u.deliveries * 0.1)} entregas realizadas`;
+  } else {
+    document.getElementById('stat-spent').textContent = `R$${u.spent}`;
+  }
+  renderStars('profile-stars-display', u.rating, 5);
+}
+
+function renderStars(id, rating, max) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.innerHTML = [1,2,3,4,5].map(s => `<span class="profile-star ${s<=Math.round(rating)?'lit':'dim'}">★</span>`).join('');
+}
+
+function formatDate(str) {
+  const [y,m,d] = str.split('-');
+  return `${d}/${m}/${y}`;
+}
+
+// ─── EDIT MODAL ───
+function openEditModal(field) {
+  editField = field;
+  const u = currentUser;
+  const titles = { name:'Nome Completo', email:'E-mail', phone:'Telefone', birth:'Data de Nascimento', gender:'Gênero' };
+  document.getElementById('edit-modal-title').textContent = titles[field];
+  let body = '';
+  if (field === 'gender') {
+    body = `<div class="edit-field-group"><label>Gênero</label><select id="edit-val"><option ${u.gender==='Masculino'?'selected':''}>Masculino</option><option ${u.gender==='Feminino'?'selected':''}>Feminino</option><option ${u.gender==='Não Binário'?'selected':''}>Não Binário</option><option ${u.gender==='Prefiro não informar'?'selected':''}>Prefiro não informar</option></select></div>`;
+  } else if (field === 'birth') {
+    body = `<div class="edit-field-group"><label>Data de Nascimento</label><input type="date" id="edit-val" value="${u.birth}"></div>`;
+  } else {
+    const types = { name:'text', email:'email', phone:'tel' };
+    const vals = { name:u.name, email:u.email, phone:u.phone };
+    body = `<div class="edit-field-group"><label>${titles[field]}</label><input type="${types[field]||'text'}" id="edit-val" value="${vals[field]||''}"></div>`;
+  }
+  document.getElementById('edit-modal-body').innerHTML = body;
+  openModal('edit-modal');
+}
+
+function saveEditModal() {
+  const val = document.getElementById('edit-val').value;
+  if (!val) { showToast('Campo não pode ser vazio','error'); return; }
+  const fieldMap = { name:'name', email:'email', phone:'phone', birth:'birth', gender:'gender' };
+  currentUser[fieldMap[editField]] = val;
+  renderProfile();
+  closeModal('edit-modal');
+  showToast('Perfil atualizado com sucesso ✓','success');
+}
+
+function updateAvatar(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const src = e.target.result;
+    const av = document.getElementById('profile-avatar-display');
+    av.innerHTML = `<img src="${src}" style="width:100%;height:100%;object-fit:cover">`;
+    const avBtn = document.getElementById('topbar-avatar');
+    avBtn.innerHTML = `<img src="${src}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`;
+    showToast('Foto atualizada!','success');
+  };
+  reader.readAsDataURL(file);
+}
+
+// ─── RATING ───
+function setRating(val) {
+  selectedRating = val;
+  document.querySelectorAll('.rating-star').forEach((s,i) => {
+    s.classList.toggle('selected', i < val);
+  });
+}
+
+function submitRating() {
+  if (!selectedRating) { showToast('Selecione uma nota','error'); return; }
+  closeModal('rating-modal');
+  showToast(`Avaliação de ${selectedRating}★ enviada! Obrigado.`,'success');
+  selectedRating = 0;
+  document.querySelectorAll('.rating-star').forEach(s => s.classList.remove('selected','hover'));
+}
+
+// ─── PARTNER ───
+function togglePartnerStatus() {
+  partnerOnline = !partnerOnline;
+  const tog = document.getElementById('partner-toggle');
+  tog.classList.toggle('on', partnerOnline);
+  document.getElementById('partner-status-text').textContent = partnerOnline ? 'Online' : 'Offline';
+  showToast(partnerOnline ? 'Você está online! Aguardando solicitações...':'Você está offline','success');
+  if (partnerOnline) {
+    setTimeout(showRequestAlert, 4000);
+  }
+}
+
+function showRequestAlert() {
+  if (!partnerOnline) return;
+  document.getElementById('request-alert').classList.remove('hidden');
+  let t = 15;
+  document.getElementById('req-timer').textContent = t;
+  reqTimerInterval = setInterval(() => {
+    t--;
+    document.getElementById('req-timer').textContent = t;
+    if (t <= 0) { declineRequest(); }
+  }, 1000);
+}
+
+function acceptRequest() {
+  clearInterval(reqTimerInterval);
+  document.getElementById('request-alert').classList.add('hidden');
+  showToast('Entrega aceita! Navegue até a origem.','success');
+  goTo('tracking');
+  setTimeout(initMap, 200);
+}
+
+function declineRequest() {
+  clearInterval(reqTimerInterval);
+  document.getElementById('request-alert').classList.add('hidden');
+  showToast('Solicitação recusada','error');
+}
+
+// ─── MODALS ───
+function openModal(id) {
+  document.getElementById(id).classList.add('show');
+}
+function closeModal(id) {
+  document.getElementById(id).classList.remove('show');
+}
+document.querySelectorAll('.modal-backdrop').forEach(b => {
+  b.addEventListener('click', e => { if(e.target===b) b.classList.remove('show'); });
+});
+
+// ─── TOAST ───
+let toastTimer;
+function showToast(msg, type='success') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = `show ${type}`;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 3000);
+}
+</script>
+</body>
+</html>

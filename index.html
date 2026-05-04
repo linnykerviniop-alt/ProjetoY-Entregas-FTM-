@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PROJETO Y — Entregas Rápidas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<!-- SPLASH -->
+<div id="splash">
+  <div class="splash-logo">PROJETO<span>Y</span></div>
+  <div class="splash-sub">Entregas • Rápido • Seguro</div>
+  <div class="splash-bar"><div class="splash-fill"></div></div>
+</div>
+
+<!-- AUTH -->
+<div id="auth-screen">
+  <div class="auth-card">
+    <div class="auth-logo">PROJETO<span>Y</span></div>
+    <div class="auth-tagline">Sua plataforma de entregas urbanas</div>
+    <div class="auth-tabs">
+      <div class="auth-tab active" onclick="setAuthType('login')">Entrar</div>
+      <div class="auth-tab" onclick="setAuthType('register')">Cadastrar</div>
+    </div>
+    <div id="login-form">
+      <div class="input-group">
+        <label>E-mail</label>
+        <input type="email" id="login-email" placeholder="seu@email.com" value="cliente@demo.com">
+      </div>
+      <div class="input-group">
+        <label>Senha</label>
+        <input type="password" id="login-pass" placeholder="••••••••" value="123456">
+      </div>
+      <div class="input-group">
+        <label>Entrar como</label>
+        <select id="login-type">
+          <option value="client">Cliente (Solicitante)</option>
+          <option value="partner">Parceiro (Entregador)</option>
+        </select>
+      </div>
+      <button class="btn-primary" onclick="doLogin()">Entrar</button>
+    </div>
+    <div id="register-form" class="hidden">
+      <div class="input-group">
+        <label>Nome Completo</label>
+        <input type="text" id="reg-name" placeholder="Seu nome completo">
+      </div>
+      <div class="input-group">
+        <label>E-mail</label>
+        <input type="email" id="reg-email" placeholder="seu@email.com">
+      </div>
+      <div class="input-group">
+        <label>Telefone</label>
+        <input type="tel" id="reg-phone" placeholder="(00) 00000-0000">
+      </div>
+      <div class="input-group">
+        <label>Senha</label>
+        <input type="password" id="reg-pass" placeholder="Mínimo 6 caracteres">
+      </div>
+      <div class="input-group">
+        <label>Tipo de conta</label>
+        <select id="reg-type">
+          <option value="client">Cliente (Solicitante)</option>
+          <option value="partner">Parceiro (Entregador)</option>
+        </select>
+      </div>
+      <button class="btn-primary" onclick="doRegister()">Criar Conta</button>
+    </div>
+    <div class="auth-switch">Problemas para entrar? <a href="#">Recuperar senha</a></div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <div class="topbar">
+    <div class="topbar-logo">PROJETO<span>Y</span></div>
+    <div class="topbar-right">
+      <div class="notif-btn" onclick="showToast('Nenhuma notificação nova','success')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:18px;height:18px;stroke:#888">
+          <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+          <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+        </svg>
+        <div class="notif-dot"></div>
+      </div>
+      <div class="avatar-btn" onclick="goTo('profile')" id="topbar-avatar">C</div>
+    </div>
+  </div>
+
+  <!-- PARTNER TOGGLE -->
+  <div class="partner-toggle-bar partner-only" id="partner-bar">
+    <div>
+      <div class="toggle-label">Status: <strong id="partner-status-text">Offline</strong></div>
+      <div style="font-size:0.72rem;color:var(--text2);margin-top:2px">Ative para receber chamados</div>
+    </div>
+    <div class="toggle-switch" id="partner-toggle" onclick="togglePartnerStatus()">
+      <div class="toggle-thumb"></div>
+    </div>
+  </div>
+
+  <div class="content" id="main-content">
+    <!-- HOME -->
+    <div class="page active" id="page-home">
+      <div class="home-hero">
+        <div class="home-greeting">Bom dia 👋</div>
+        <div class="home-name" id="home-username">Usuário</div>
+        <div class="status-bar">
+          <div class="status-pill"><div class="status-dot"></div>Sistema Online</div>
+          <div class="status-pill" id="home-type-badge">Cliente</div>
+        </div>
+      </div>
+
+      <!-- Client Home -->
+      <div class="client-only">
+        <div class="quick-actions">
+          <div class="qa-card primary" onclick="goTo('request')">
+            <div class="qa-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/>
+              </svg>
+            </div>
+            <div class="qa-text">
+              <div class="qa-title">Nova Entrega</div>
+              <div class="qa-sub">Solicite um parceiro agora</div>
+            </div>
+          </div>
+          <div class="qa-card" onclick="goTo('tracking')">
+            <div class="qa-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>
+              </svg>
+            </div>
+            <div class="qa-title">Rastrear</div>
+            <div class="qa-sub">Acompanhar entrega</div>
+          </div>
+          <div class="qa-card" onclick="goTo('history')">
+            <div class="qa-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+              </svg>
+            </div>
+            <div class="qa-title">Histórico</div>
+            <div class="qa-sub">Entregas anteriores</div>
+          </div>
+        </div>
+        <div class="section-header">
+          <div class="section-title">Entregas Recentes</div>
+          <div class="section-link" onclick="goTo('history')">Ver tudo</div>
+        </div>
+        <div class="recent-list" id="recent-list"></div>
+      </div>
+
+      <!-- Partner Home -->
+      <div class="partner-only">
+        <div class="earnings-card">
+          <div class="earnings-today">Ganhos de hoje</div>
+          <div class="earnings-amount" id="partner-earnings">R$ 0,00</div>
+          <div class="earnings-trips" id="partner-trips">0 entregas realizadas</div>
+        </div>
+        <div class="section-header">
+          <div class="section-title">Suas Entregas Hoje</div>
+          <div class="section-link" onclick="goTo('history')">Ver tudo</div>
+        </div>
+        <div class="recent-list" id="partner-recent-list"></div>
+      </div>
+    </div>
+
+    <!-- REQUEST -->
+    <div class="page client-only" id="page-request">
+      <div class="form-page">
+        <div class="form-section">
+          <div class="form-section-title">Endereços</div>
+          <div class="address-input-wrap" style="margin-bottom:8px">
+            <svg class="address-input-icon" viewBox="0 0 24 24" fill="none" stroke="#ff6b35" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4"/></svg>
+            <input type="text" id="addr-origin" placeholder="Endereço de origem (coleta)" value="Rua das Flores, 123 - Centro">
+          </div>
+          <div class="addr-connector">
+            <div class="addr-dot"></div>
+            <div class="addr-line"></div>
+            <div class="addr-dot2"></div>
+          </div>
+          <div class="address-input-wrap">
+            <svg class="address-input-icon" viewBox="0 0 24 24" fill="none" stroke="#E8FF47" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+            <input type="text" id="addr-dest" placeholder="Endereço de destino (entrega)" value="Av. Paulista, 1578 - Bela Vista">
+          </div>
+        </div>
+
+        <div class="form-section">
+          <div class="form-section-title">Tipo de Serviço</div>
+          <div class="service-options">
+            <div class="service-opt selected" onclick="selectService(this,'moto')" data-service="moto">
+              <div class="service-opt-icon">🏍️</div>
+              <div class="service-opt-name">Moto</div>
+              <div class="service-opt-time">~15 min</div>
+            </div>
+            <div class="service-opt" onclick="selectService(this,'cargo')" data-service="cargo">
+              <div class="service-opt-icon">📦</div>
+              <div class="service-opt-name">Cargo</div>
+              <div class="service-opt-time">~25 min</div>
+            </div>
+            <div class="service-opt" onclick="selectService(this,'express')" data-service="express">
+              <div class="service-opt-icon">⚡</div>
+              <div class="service-opt-name">Express</div>
+              <div class="service-opt-time">~8 min</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-section">
+          <div class="form-section-title">Produto (Opcional)</div>
+          <div class="row-2">
+            <div class="form-input-group">
+              <label>Peso aprox. (kg)</label>
+              <input type="number" id="prod-weight" placeholder="ex: 2.5" step="0.1" min="0" oninput="calcPrice()">
+            </div>
+            <div class="form-input-group">
+              <label>Tamanho</label>
+              <select id="prod-size" onchange="calcPrice()">
+                <option value="small">Pequeno</option>
+                <option value="medium">Médio</option>
+                <option value="large">Grande</option>
+                <option value="xlarge">Extra Grande</option>
+              </select>
+            </div>
+          </div>
+          <div style="margin-top:12px" class="form-input-group">
+            <label>Tipo do produto (opcional)</label>
+            <input type="text" id="prod-type" placeholder="ex: documentos, eletrônicos, alimentos...">
+          </div>
+        </div>
+
+        <div class="price-preview" id="price-preview">
+          <div class="price-preview-label">Estimativa de valor</div>
+          <div class="price-main" id="price-main">R$ 18,90</div>
+          <div class="price-breakdown">
+            <div class="price-row"><span>Tarifa base</span><span id="pb-base">R$ 5,90</span></div>
+            <div class="price-row"><span>Distância (~8,2 km)</span><span id="pb-dist">R$ 9,84</span></div>
+            <div class="price-row"><span>Peso/Tamanho</span><span id="pb-extra">R$ 3,16</span></div>
+            <div class="price-row"><span>Taxa plataforma (10%)</span><span id="pb-fee">R$ 1,88</span></div>
+          </div>
+        </div>
+
+        <button class="btn-primary" onclick="confirmRequest()" style="width:100%;font-size:1rem;">
+          Solicitar Entregador →
+        </button>
+      </div>
+    </div>
+
+    <!-- TRACKING -->
+    <div class="page" id="page-tracking">
+      <div id="map-container">
+        <div id="map"></div>
+        <div class="map-overlay">
+          <div class="tracking-card" id="tracking-card">
+            <div class="tracking-status">
+              <div class="tracking-dot"></div>
+              <div class="tracking-label" id="tracking-label">Parceiro a caminho</div>
+              <div class="tracking-eta" id="tracking-eta">⏱ 8 min</div>
+            </div>
+            <div class="partner-row">
+              <div class="partner-avatar">
+                <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=delivery1" onerror="this.style.display='none'">
+              </div>
+              <div>
+                <div class="partner-name">Ricardo M.</div>
+                <div class="partner-vehicle">Honda CG 160 • Moto • ABC-1234</div>
+              </div>
+              <div class="partner-rating">
+                <span class="star-icon">★</span>
+                <span class="partner-score">4.8</span>
+              </div>
+            </div>
+            <div class="contact-btns">
+              <div class="contact-btn" onclick="showToast('Ligando para o parceiro...','success')">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.65 3.33 2 2 0 0 1 3.62 1h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.64a16 16 0 0 0 5.45 5.45l.96-.96a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 21 16.92z"/></svg>
+                Ligar
+              </div>
+              <div class="contact-btn" onclick="showToast('Chat em breve...','success')">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                Mensagem
+              </div>
+              <div class="contact-btn" onclick="showToast('Entrega cancelada','error')">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+                Cancelar
+              </div>
+            </div>
+          </div>
+          <div id="no-tracking" class="hidden">
+            <div style="text-align:center;padding:24px 0;color:var(--text2)">
+              <div style="font-size:2rem;margin-bottom:8px">📍</div>
+              <div style="font-family:var(--font-display);font-weight:700;margin-bottom:4px">Nenhuma entrega ativa</div>
+              <div style="font-size:0.85rem">Solicite uma entrega para rastrear aqui</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- HISTORY -->
+    <div class="page" id="page-history">
+      <div style="padding:16px 20px 8px">
+        <div style="font-family:var(--font-display);font-size:1.2rem;font-weight:800">Histórico</div>
+        <div style="color:var(--text2);font-size:0.82rem;margin-top:2px">Todas as suas entregas</div>
+      </div>
+      <div class="history-filters">
+        <div class="filter-chip active" onclick="filterHistory(this,'all')">Todas</div>
+        <div class="filter-chip" onclick="filterHistory(this,'delivered')">Entregues</div>
+        <div class="filter-chip" onclick="filterHistory(this,'transit')">Em andamento</div>
+        <div class="filter-chip" onclick="filterHistory(this,'cancelled')">Canceladas</div>
+      </div>
+      <div class="history-list" id="history-list"></div>
+    </div>
+
+    <!-- PROFILE -->
+    <div class="page" id="page-profile">
+      <div class="profile-header">
+        <div class="profile-avatar-wrap">
+          <div class="profile-avatar" id="profile-avatar-display">U</div>
+          <div class="avatar-edit" onclick="document.getElementById('avatar-file').click()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>
+          </div>
+        </div>
+        <input type="file" id="avatar-file" accept="image/*" class="hidden" onchange="updateAvatar(event)">
+        <div class="profile-name" id="profile-name-display">Usuário</div>
+        <div class="profile-type" id="profile-type-display">Cliente</div>
+        <div style="display:flex;align-items:center;gap:8px;margin-top:4px">
+          <div class="profile-stars" id="profile-stars-display"></div>
+          <div class="profile-rating-num" id="profile-rating-num">0.0</div>
+          <div style="font-size:0.75rem;color:var(--text2)" id="profile-rating-count">(0 avaliações)</div>
+        </div>
+        <div class="profile-stats" style="background:var(--bg3);border-radius:var(--radius);border:1px solid var(--border);overflow:hidden;width:100%;margin-top:12px">
+          <div class="stat-item"><div class="stat-value" id="stat-deliveries">0</div><div class="stat-label">Entregas</div></div>
+          <div class="stat-item"><div class="stat-value" id="stat-km">0</div><div class="stat-label">Km</div></div>
+          <div class="stat-item"><div class="stat-value" id="stat-spent">R$0</div><div class="stat-label" id="stat-spent-label">Gasto</div></div>
+        </div>
+      </div>
+
+      <div class="profile-section">
+        <div class="profile-section-title">Informações Pessoais</div>
+        <div class="profile-field" onclick="openEditModal('name')">
+          <div class="field-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
+          <div class="field-info"><div class="field-label">Nome completo</div><div class="field-value" id="field-name">—</div></div>
+          <div class="field-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></div>
+        </div>
+        <div class="profile-field" onclick="openEditModal('email')">
+          <div class="field-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg></div>
+          <div class="field-info"><div class="field-label">E-mail</div><div class="field-value" id="field-email">—</div></div>
+          <div class="field-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></div>
+        </div>
+        <div class="profile-field" onclick="openEditModal('phone')">
+          <div class="field-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.65 3.33 2 2 0 0 1 3.62 1h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.64a16 16 0 0 0 5.45 5.45l.96-.96a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 21 16.92z"/></svg></div>
+          <div class="field-info"><div class="field-label">Telefone</div><div class="field-value" id="field-phone">—</div></div>
+          <div class="field-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></div>
+        </div>
+        <div class="profile-field" onclick="openEditModal('birth')">
+          <div class="field-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>
+          <div class="field-info"><div class="field-label">Data de Nascimento</div><div class="field-value" id="field-birth">—</div></div>
+          <div class="field-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></div>
+        </div>
+        <div class="profile-field" onclick="openEditModal('gender')">
+          <div class="field-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M20 21a8 8 0 1 0-16 0"/></svg></div>
+          <div class="field-info"><div class="field-label">Gênero</div><div class="field-value" id="field-gender">—</div></div>
+          <div class="field-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></div>
+        </div>
+      </div>
+
+      <div class="profile-menu">
+        <div class="profile-section-title" style="padding:0;margin-bottom:12px">Configurações</div>
+        <div class="menu-item" onclick="showToast('Em breve: Método de pagamento','success')">
+          <div class="menu-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg></div>
+          <div class="menu-label">Pagamento</div>
+          <div class="menu-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></div>
+        </div>
+        <div class="menu-item" onclick="showToast('Em breve: Endereços salvos','success')">
+          <div class="menu-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg></div>
+          <div class="menu-label">Endereços Salvos</div>
+          <div class="menu-badge">Novo</div>
+          <div class="menu-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></div>
+        </div>
+        <div class="menu-item" onclick="showToast('Em breve: Notificações','success')">
+          <div class="menu-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></div>
+          <div class="menu-label">Notificações</div>
+          <div class="menu-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></div>
+        </div>
+        <div class="menu-item" onclick="showToast('Em breve: Central de ajuda','success')">
+          <div class="menu-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div>
+          <div class="menu-label">Ajuda & Suporte</div>
+          <div class="menu-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></div>
+        </div>
+        <div class="menu-item" onclick="doLogout()" style="margin-top:8px">
+          <div class="menu-icon"><svg viewBox="0 0 24 24" fill="none" stroke="#E74C3C" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg></div>
+          <div class="menu-label" style="color:var(--danger)">Sair da Conta</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- BOTTOM NAV -->
+  <div class="bottom-nav">
+    <div class="nav-item active" onclick="goTo('home')" id="nav-home">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      <span>Início</span>
+    </div>
+    <div class="nav-item client-only" onclick="goTo('request')" id="nav-request">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+      <span>Solicitar</span>
+    </div>
+    <div class="nav-item" onclick="goTo('tracking')" id="nav-tracking">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+      <span>Mapa</span>
+    </div>
+    <div class="nav-item" onclick="goTo('history')" id="nav-history">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+      <span>Histórico</span>
+    </div>
+    <div class="nav-item" onclick="goTo('profile')" id="nav-profile">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      <span>Perfil</span>
+    </div>
+  </div>
+</div>
+
+<!-- EDIT PROFILE MODAL -->
+<div class="modal-backdrop" id="edit-modal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="edit-modal-title">Editar</div>
+    <div id="edit-modal-body"></div>
+    <button class="btn-primary" onclick="saveEditModal()">Salvar Alterações</button>
+    <button onclick="closeModal('edit-modal')" style="width:100%;background:none;border:none;color:var(--text2);padding:12px;cursor:pointer;margin-top:8px;font-family:var(--font-body)">Cancelar</button>
+  </div>
+</div>
+
+<!-- RATING MODAL -->
+<div class="modal-backdrop" id="rating-modal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Avaliar Entrega</div>
+    <div style="text-align:center;color:var(--text2);font-size:0.85rem;margin-bottom:16px">Como foi sua experiência com o parceiro?</div>
+    <div class="rating-stars" id="rating-stars">
+      <span class="rating-star" onclick="setRating(1)">★</span>
+      <span class="rating-star" onclick="setRating(2)">★</span>
+      <span class="rating-star" onclick="setRating(3)">★</span>
+      <span class="rating-star" onclick="setRating(4)">★</span>
+      <span class="rating-star" onclick="setRating(5)">★</span>
+    </div>
+    <textarea class="rating-comment" id="rating-comment" placeholder="Deixe um comentário (opcional)..."></textarea>
+    <button class="btn-primary" onclick="submitRating()" style="margin-top:16px">Enviar Avaliação</button>
+    <button onclick="closeModal('rating-modal')" style="width:100%;background:none;border:none;color:var(--text2);padding:12px;cursor:pointer;font-family:var(--font-body)">Pular</button>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div id="toast"></div>
+
+<!-- PARTNER REQUEST ALERT (demo) -->
+<div id="request-alert" class="request-alert hidden">
+  <div class="req-header">
+    <div class="req-badge">NOVA SOLICITAÇÃO</div>
+    <div class="req-timer" id="req-timer">15</div>
+  </div>
+  <div class="req-route" id="req-route">📍 Rua das Flores, 123 → Av. Paulista, 1578</div>
+  <div class="req-price" id="req-price">R$ 18,90</div>
+  <div class="req-btns">
+    <button class="req-accept" onclick="acceptRequest()">✓ Aceitar</button>
+    <button class="req-decline" onclick="declineRequest()">Recusar</button>
+  </div>
+</div>
+
+<script src="js/script.js"></script>
+</body>
+</html>
